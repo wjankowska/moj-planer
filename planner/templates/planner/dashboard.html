@@ -2,50 +2,217 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Mój Planer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mój Planer & Kalendarz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- FullCalendar CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@fullcalendar/core@6.1.11/locales/pl.global.min.js"></script>
+
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #222; }
-        .card { background: #fdfdfd; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
-        .completed { opacity: 0.5; text-decoration: line-through; }
-        .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: #0071e3; color: white; border-radius: 4px; margin-right: 8px; }
-        form.create-form { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
-        form.create-form input, form.create-form select, form.create-form textarea { width: 100%; padding: 8px; margin-top: 4px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
-        button.btn-primary { background: #0071e3; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 500; }
-        a.action { font-size: 13px; color: #0071e3; text-decoration: none; font-weight: 500; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        body { font-family: 'Inter', sans-serif; }
+        /* Dopasowanie stylów FullCalendar do estetyki strony */
+        .fc { font-family: inherit; }
+        .fc-toolbar-title { font-size: 1.15rem !important; font-weight: 700; color: #0f172a; }
+        .fc-button-primary { background-color: #4f46e5 !important; border-color: #4f46e5 !important; font-size: 0.85rem !important; border-radius: 0.5rem !important; }
+        .fc-button-primary:hover { background-color: #4338ca !important; }
+        .fc-event { border-radius: 4px; padding: 2px 4px; font-size: 0.8rem; font-weight: 500; cursor: pointer; }
+        .fc-day-today { background-color: #f1f5f9 !important; }
     </style>
 </head>
-<body>
-    <div class="header">
-        <h2>Cześć, {{ user.username }}! 🗓️</h2>
-        <form action="{% url 'logout' %}" method="post" style="margin:0;">
-            {% csrf_token %}
-            <button type="submit" style="background:#e2e8f0; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">Wyloguj</button>
-        </form>
-    </div>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
 
-    <h3>Dodaj nowe wydarzenie lub zadanie</h3>
-    <form method="POST" class="create-form">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn-primary">Zapisz w planerze</button>
-    </form>
-
-    <h3>Twoje plany</h3>
-    {% for item in items %}
-        <div class="card {% if item.is_completed %}completed{% endif %}">
-            <span class="badge">{{ item.get_item_type_display }}</span>
-            <strong>{{ item.title }}</strong> 
-            <small style="color: #64748b;">— {{ item.due_date|date:"d.m.Y H:i" }}</small>
-            {% if item.description %}<p style="margin: 8px 0;">{{ item.description }}</p>{% endif %}
-            <div style="margin-top: 10px;">
-                <a class="action" href="{% url 'toggle_task' item.id %}">
-                    {% if item.is_completed %}↩ Przywróć{% else %}✓ Oznacz jako zrobione{% endif %}
-                </a>
+    <!-- Pasek górny -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-20">
+        <div class="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <span class="text-2xl">🗓️</span>
+                <span class="font-bold text-lg tracking-tight text-slate-900">Mój Planer</span>
+            </div>
+            <div class="flex items-center space-x-4">
+                <span class="text-sm font-medium text-slate-600 hidden sm:inline">Cześć, <strong class="text-slate-900">{{ user.username }}</strong>!</span>
+                <form action="{% url 'logout' %}" method="post" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="text-sm px-3.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 font-medium transition text-slate-600">
+                        Wyloguj
+                    </button>
+                </form>
             </div>
         </div>
-    {% empty %}
-        <p style="color: #64748b;">Brak zaplanowanych wpisów. Dodaj pierwsze zadanie powyżej!</p>
-    {% endfor %}
-</body>
-</html>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Lewa kolumna: Formularz dodawania -->
+            <div class="lg:col-span-4">
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sticky top-24">
+                    <h2 class="text-lg font-semibold text-slate-900 mb-1">Nowe wydarzenie</h2>
+                    <p class="text-xs text-slate-500 mb-5">Dodaj termin, a pojawi się od razu w kalendarzu.</p>
+
+                    <form method="POST" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Tytuł</label>
+                            <input type="text" name="title" required placeholder="np. Egzamin, Dentysta, Spacer..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-sm transition">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Typ</label>
+                                <select name="item_type" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-sm transition">
+                                    <option value="task">🔵 Zadanie</option>
+                                    <option value="event">🟢 Spotkanie</option>
+                                    <option value="deadline">🔴 Ważny termin</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Termin</label>
+                                <input type="datetime-local" name="due_date" required class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-sm transition">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Notatki (opcjonalnie)</label>
+                            <textarea name="description" rows="3" placeholder="Szczegóły wpisu..." class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white text-sm transition"></textarea>
+                        </div>
+
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-sm transition flex items-center justify-center space-x-2">
+                            <span>+ Dodaj wpis</span>
+                        </button>
+                    </form>
+
+                    <!-- Legenda kolorów -->
+                    <div class="mt-6 pt-5 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 mr-1.5"></span>Zadanie</span>
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1.5"></span>Spotkanie</span>
+                        <span class="flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1.5"></span>Ważna data</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prawa kolumna: Kalendarz oraz Lista -->
+            <div class="lg:col-span-8 space-y-6">
+                
+                <!-- Przełącznik widoków -->
+                <div class="flex items-center justify-between">
+                    <div class="inline-flex rounded-xl bg-slate-200/80 p-1 text-xs font-semibold">
+                        <button id="btn-calendar" onclick="switchView('calendar')" class="px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition">
+                            📅 Widok kalendarza
+                        </button>
+                        <button id="btn-list" onclick="switchView('list')" class="px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition">
+                            📋 Widok listy ({{ items|length }})
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Widok 1: Siatka Kalendarza -->
+                <div id="view-calendar" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <div id="calendar"></div>
+                </div>
+
+                <!-- Widok 2: Szczegółowa Lista -->
+                <div id="view-list" class="hidden space-y-3">
+                    {% if items %}
+                        {% for item in items %}
+                            <div class="bg-white rounded-xl border border-slate-200 p-4 shadow-sm hover:shadow-md transition flex items-start justify-between gap-3 {% if item.is_completed %}opacity-60 bg-slate-50/50{% endif %}">
+                                <div class="space-y-1">
+                                    <div class="flex items-center space-x-2">
+                                        {% if item.item_type == 'event' %}
+                                            <span class="text-[11px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md">Spotkanie</span>
+                                        {% elif item.item_type == 'deadline' %}
+                                            <span class="text-[11px] font-semibold bg-rose-100 text-rose-800 px-2 py-0.5 rounded-md">Ważna data</span>
+                                        {% else %}
+                                            <span class="text-[11px] font-semibold bg-blue-100 text-blue-800 px-2 py-0.5 rounded-md">Zadanie</span>
+                                        {% endif %}
+                                        <span class="text-xs text-slate-500 font-medium">🕒 {{ item.due_date|date:"d M Y, H:i" }}</span>
+                                    </div>
+                                    <h3 class="font-semibold text-slate-900 {% if item.is_completed %}line-through text-slate-500{% endif %}">
+                                        {{ item.title }}
+                                    </h3>
+                                    {% if item.description %}
+                                        <p class="text-xs text-slate-600 mt-1 leading-relaxed">{{ item.description }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <div class="flex items-center space-x-1 shrink-0">
+                                    <a href="{% url 'toggle_task' item.id %}" class="p-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600 transition">
+                                        {% if item.is_completed %}<span class="text-sm">↩</span>{% else %}<span class="text-sm text-emerald-600">✓</span>{% endif %}
+                                    </a>
+                                    <a href="{% url 'delete_task' item.id %}" onclick="return confirm('Czy na pewno chcesz usunąć ten wpis?');" class="p-1.5 rounded-lg border border-slate-200 hover:bg-rose-50 text-rose-500 transition">
+                                        <span class="text-sm">✕</span>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+                            <div class="text-4xl mb-3">☕</div>
+                            <h3 class="text-sm font-semibold text-slate-800">Czyste konto!</h3>
+                            <p class="text-xs text-slate-500 mt-1">Brak zaplanowanych wpisów.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Bezpieczne przekazanie JSON z Django -->
+    {{ events_json|json_script:"events-data" }}
+
+    <!-- Inicjalizacja skryptu kalendarza -->
+    <script>
+        const eventsData = JSON.parse(document.getElementById('events-data').textContent);
+        let calendar;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const calendarEl = document.getElementById('calendar');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'pl',
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek'
+                },
+                buttonText: {
+                    today: 'Dziś',
+                    month: 'Miesiąc',
+                    week: 'Tydzień'
+                },
+                events: eventsData,
+                eventTimeFormat: {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    meridiem: false
+                }
+            });
+            calendar.render();
+        });
+
+        function switchView(view) {
+            const calView = document.getElementById('view-calendar');
+            const listView = document.getElementById('view-list');
+            const btnCal = document.getElementById('btn-calendar');
+            const btnList = document.getElementById('btn-list');
+
+            if (view === 'calendar') {
+                calView.classList.remove('hidden');
+                listView.classList.add('hidden');
+                btnCal.className = "px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition";
+                btnList.className = "px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition";
+                setTimeout(() => { calendar.render(); }, 50);
+            } else {
+                calView.classList.add('hidden');
+                listView.classList.remove('hidden');
+                btnList.className = "px-4 py-2 rounded-lg bg-white text-slate-900 shadow-sm transition";
+                btnCal.className = "px-4 py-2 rounded-lg text-slate-600 hover:text-slate-900 transition";
+            }
+        }
+    </script>
