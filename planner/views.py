@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .models import PlannerItem
 from .forms import PlannerItemForm
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
 
 @login_required
 def dashboard(request):
@@ -27,3 +29,14 @@ def toggle_task(request, item_id):
     item.is_completed = not item.is_completed
     item.save()
     return redirect('dashboard')
+
+def register(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)  # automatycznie loguje po rejestracji
+            return redirect('dashboard')
+    else:
+        form = UserCreationForm()
+    return render(request, 'registration/register.html', {'form': form})

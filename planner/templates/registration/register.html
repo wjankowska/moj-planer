@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Rejestracja w Planerze</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 80vh; background: #f8fafc; }
+        .box { width: 340px; background: white; padding: 28px; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        input { width: 100%; padding: 8px; margin: 6px 0 14px 0; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #0071e3; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        .helptext { font-size: 11px; color: #64748b; display: block; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h3 style="margin-top:0;">Stwórz konto</h3>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Zarejestruj się</button>
+        </form>
+        <p style="font-size: 13px; text-align: center; margin-top: 15px;">
+            Masz już konto? <a href="{% url 'login' %}">Zaloguj się</a>
+        </p>
+    </div>
+</body>
+</html>
