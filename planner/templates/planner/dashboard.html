@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Mój Planer</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 720px; margin: 40px auto; padding: 0 20px; color: #222; }
+        .card { background: #fdfdfd; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .completed { opacity: 0.5; text-decoration: line-through; }
+        .badge { display: inline-block; padding: 3px 8px; font-size: 11px; font-weight: 600; text-transform: uppercase; background: #0071e3; color: white; border-radius: 4px; margin-right: 8px; }
+        form.create-form { background: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        form.create-form input, form.create-form select, form.create-form textarea { width: 100%; padding: 8px; margin-top: 4px; margin-bottom: 12px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
+        button.btn-primary { background: #0071e3; color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: 500; }
+        a.action { font-size: 13px; color: #0071e3; text-decoration: none; font-weight: 500; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>Cześć, {{ user.username }}! 🗓️</h2>
+        <form action="{% url 'logout' %}" method="post" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" style="background:#e2e8f0; border:none; padding:8px 14px; border-radius:6px; cursor:pointer;">Wyloguj</button>
+        </form>
+    </div>
+
+    <h3>Dodaj nowe wydarzenie lub zadanie</h3>
+    <form method="POST" class="create-form">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn-primary">Zapisz w planerze</button>
+    </form>
+
+    <h3>Twoje plany</h3>
+    {% for item in items %}
+        <div class="card {% if item.is_completed %}completed{% endif %}">
+            <span class="badge">{{ item.get_item_type_display }}</span>
+            <strong>{{ item.title }}</strong> 
+            <small style="color: #64748b;">— {{ item.due_date|date:"d.m.Y H:i" }}</small>
+            {% if item.description %}<p style="margin: 8px 0;">{{ item.description }}</p>{% endif %}
+            <div style="margin-top: 10px;">
+                <a class="action" href="{% url 'toggle_task' item.id %}">
+                    {% if item.is_completed %}↩ Przywróć{% else %}✓ Oznacz jako zrobione{% endif %}
+                </a>
+            </div>
+        </div>
+    {% empty %}
+        <p style="color: #64748b;">Brak zaplanowanych wpisów. Dodaj pierwsze zadanie powyżej!</p>
+    {% endfor %}
+</body>
+</html>
